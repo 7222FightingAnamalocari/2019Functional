@@ -33,7 +33,7 @@ public class Robot extends IterativeRobot {
   SpeedControllerGroup m_right = new SpeedControllerGroup(m_rightFront, m_rightBack);
 
   DoubleSolenoid cannonFeed = new DoubleSolenoid(1, 2);
-
+  
   Compressor compressor = new Compressor(0);
 
   boolean toggleOn = false;
@@ -49,47 +49,46 @@ public class Robot extends IterativeRobot {
     m_chooser.addObject("My Auto", kCustomAuto);
     SmartDashboard.putData("Auto choices", m_chooser);
     new Thread(() -> {
-        UsbCamera camera = CameraServer.getInstance().startAutomaticCapture();
-        camera.setResolution(640, 480);
-      
-        CvSink cvSink = CameraServer.getInstance().getVideo();
-        CvSource outputStream = CameraServer.getInstance().putVideo("cam0", 640, 480);
-      
-        Mat source = new Mat();
-        Mat output = new Mat();
-      
-        while(!Thread.interrupted()) {
-            cvSink.grabFrame(source);
-            Imgproc.cvtColor(source, output, Imgproc.COLOR_BGR2GRAY);
-            outputStream.putFrame(output);
-        }
+      UsbCamera camera = CameraServer.getInstance().startAutomaticCapture();
+      camera.setResolution(640, 480);
+
+      CvSink cvSink = CameraServer.getInstance().getVideo();
+      CvSource outputStream = CameraServer.getInstance().putVideo("cam0", 640, 480);
+
+      Mat source = new Mat();
+      Mat output = new Mat();
+      while(!Thread.interrupted()) {
+        cvSink.grabFrame(source);
+        Imgproc.cvtColor(source, output, Imgproc.COLOR_BGR2GRAY);
+        outputStream.putFrame(output);
+      }
     }).start();
     m_left.setInverted(true);
   }
 
-  /**
-   * This function is called every robot packet, no matter the mode. Use
-   * this for items like diagnostics that you want ran during disabled,
-   * autonomous, teleoperated and test.
-   *
-   * <p>This runs after the mode specific periodic functions, but before
-   * LiveWindow and SmartDashboard integrated updating.
-   */
+ /*
+  * This function is called every robot packet, no matter the mode. Use
+  * this for items like diagnostics that you want ran during disabled,
+  * autonomous, teleoperated and test.
+  *
+  * <p>This runs after the mode specific periodic functions, but before
+  * LiveWindow and SmartDashboard integrated updating.
+  */
   @Override
   public void robotPeriodic() {
   }
 
-  /**
-   * This autonomous (along with the chooser code above) shows how to select
-   * between different autonomous modes using the dashboard. The sendable
-   * chooser code works with the Java SmartDashboard. If you prefer the
-   * LabVIEW Dashboard, remove all of the chooser code and uncomment the
-   * getString line to get the auto name from the text box below the Gyro
-   *
-   * <p>You can add additional auto modes by adding additional comparisons to
-   * the switch structure below with additional strings. If using the
-   * SendableChooser make sure to add them to the chooser code above as well.
-   */
+ /*
+  * This autonomous (along with the chooser code above) shows how to select
+  * between different autonomous modes using the dashboard. The sendable
+  * chooser code works with the Java SmartDashboard. If you prefer the
+  * LabVIEW Dashboard, remove all of the chooser code and uncomment the
+  * getString line to get the auto name from the text box below the Gyro
+  *
+  * <p>You can add additional auto modes by adding additional comparisons to
+  * the switch structure below with additional strings. If using the
+  * SendableChooser make sure to add them to the chooser code above as well.
+  */
   @Override
   public void autonomousInit() {
     m_autoSelected = m_chooser.getSelected();
