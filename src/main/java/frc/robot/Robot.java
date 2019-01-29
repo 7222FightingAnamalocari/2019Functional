@@ -1,94 +1,63 @@
+/*----------------------------------------------------------------------------*/
+/* Copyright (c) 2017-2018 FIRST. All Rights Reserved.                        */
+/* Open Source Software - may be modified and shared by FRC teams. The code   */
+/* must be accompanied by the FIRST BSD license file in the root directory of */
+/* the project.                                                               */
+/*----------------------------------------------------------------------------*/
+
 package frc.robot;
 
-import org.opencv.core.Mat;
-import org.opencv.imgproc.Imgproc;
-
 import edu.wpi.first.wpilibj.IterativeRobot;
-import edu.wpi.first.wpilibj.CameraServer;
-import edu.wpi.first.wpilibj.Compressor;
-import edu.wpi.first.wpilibj.DoubleSolenoid;
-import edu.wpi.cscore.CvSink;
-import edu.wpi.cscore.CvSource;
-import edu.wpi.cscore.UsbCamera;
-import edu.wpi.first.wpilibj.Joystick;
-import edu.wpi.first.wpilibj.Spark;
-import edu.wpi.first.wpilibj.SpeedControllerGroup;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
+/**
+ * The VM is configured to automatically run this class, and to call the
+ * functions corresponding to each mode, as described in the IterativeRobot
+ * documentation. If you change the name of this class or the package after
+ * creating this project, you must also update the build.gradle file in the
+ * project.
+ */
 public class Robot extends IterativeRobot {
   private static final String kDefaultAuto = "Default";
   private static final String kCustomAuto = "My Auto";
   private String m_autoSelected;
   private final SendableChooser<String> m_chooser = new SendableChooser<>();
 
-  Joystick stick0 = new Joystick(0);
-
-  Spark m_leftFront = new Spark(0);
-  Spark m_leftBack = new Spark(1);
-  Spark m_rightFront = new Spark(2);
-  Spark m_rightBack = new Spark(3);
-
-  SpeedControllerGroup m_left = new SpeedControllerGroup(m_leftFront, m_leftBack);
-  SpeedControllerGroup m_right = new SpeedControllerGroup(m_rightFront, m_rightBack);
-
-  DoubleSolenoid cannonFeed = new DoubleSolenoid(1, 2);
-  
-  Compressor compressor = new Compressor(0);
-
-  boolean toggleOn = false;
-  boolean togglePressed = false;
-
-  boolean enabled = compressor.enabled();
-  boolean pressureSwitch = compressor.getPressureSwitchValue();
-  double current = compressor.getCompressorCurrent();
-
+  /**
+   * This function is run when the robot is first started up and should be
+   * used for any initialization code.
+   */
   @Override
   public void robotInit() {
-    m_chooser.addDefault("Default Auto", kDefaultAuto);
-    m_chooser.addObject("My Auto", kCustomAuto);
+    m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
+    m_chooser.addOption("My Auto", kCustomAuto);
     SmartDashboard.putData("Auto choices", m_chooser);
-    new Thread(() -> {
-      UsbCamera camera = CameraServer.getInstance().startAutomaticCapture();
-      camera.setResolution(640, 480);
-
-      CvSink cvSink = CameraServer.getInstance().getVideo();
-      CvSource outputStream = CameraServer.getInstance().putVideo("cam0", 640, 480);
-
-      Mat source = new Mat();
-      Mat output = new Mat();
-      while(!Thread.interrupted()) {
-        cvSink.grabFrame(source);
-        Imgproc.cvtColor(source, output, Imgproc.COLOR_BGR2GRAY);
-        outputStream.putFrame(output);
-      }
-    }).start();
-    m_left.setInverted(true);
   }
 
- /*
-  * This function is called every robot packet, no matter the mode. Use
-  * this for items like diagnostics that you want ran during disabled,
-  * autonomous, teleoperated and test.
-  *
-  * <p>This runs after the mode specific periodic functions, but before
-  * LiveWindow and SmartDashboard integrated updating.
-  */
+  /**
+   * This function is called every robot packet, no matter the mode. Use
+   * this for items like diagnostics that you want ran during disabled,
+   * autonomous, teleoperated and test.
+   *
+   * <p>This runs after the mode specific periodic functions, but before
+   * LiveWindow and SmartDashboard integrated updating.
+   */
   @Override
   public void robotPeriodic() {
   }
 
- /*
-  * This autonomous (along with the chooser code above) shows how to select
-  * between different autonomous modes using the dashboard. The sendable
-  * chooser code works with the Java SmartDashboard. If you prefer the
-  * LabVIEW Dashboard, remove all of the chooser code and uncomment the
-  * getString line to get the auto name from the text box below the Gyro
-  *
-  * <p>You can add additional auto modes by adding additional comparisons to
-  * the switch structure below with additional strings. If using the
-  * SendableChooser make sure to add them to the chooser code above as well.
-  */
+  /**
+   * This autonomous (along with the chooser code above) shows how to select
+   * between different autonomous modes using the dashboard. The sendable
+   * chooser code works with the Java SmartDashboard. If you prefer the
+   * LabVIEW Dashboard, remove all of the chooser code and uncomment the
+   * getString line to get the auto name from the text box below the Gyro
+   *
+   * <p>You can add additional auto modes by adding additional comparisons to
+   * the switch structure below with additional strings. If using the
+   * SendableChooser make sure to add them to the chooser code above as well.
+   */
   @Override
   public void autonomousInit() {
     m_autoSelected = m_chooser.getSelected();
@@ -97,6 +66,9 @@ public class Robot extends IterativeRobot {
     System.out.println("Auto selected: " + m_autoSelected);
   }
 
+  /**
+   * This function is called periodically during autonomous.
+   */
   @Override
   public void autonomousPeriodic() {
     switch (m_autoSelected) {
@@ -110,40 +82,16 @@ public class Robot extends IterativeRobot {
     }
   }
 
+  /**
+   * This function is called periodically during operator control.
+   */
   @Override
   public void teleopPeriodic() {
-    double stick0Y = stick0.getY();
-    double stick0X = stick0.getX();
-    
-    if((stick0Y >= .2) || (stick0Y <= -.2)) {
-      m_left.set(stick0Y/1.2);
-      m_right.set(stick0Y/1.2);
-    } else {
-      if((stick0X >= .3) || (stick0X <= -.3)) {
-        m_left.set(-stick0X/2);
-        m_right.set(stick0X/2);
-      }
-      m_left.set(0);
-      m_right.set(0);
-    }
-    compressor.setClosedLoopControl(true);
-    if(toggleOn) {
-      cannonFeed.set(DoubleSolenoid.Value.kForward);
-    } else {
-      cannonFeed.set(DoubleSolenoid.Value.kForward);
-    }
-    {
-      if(stick0.getRawButton(1)) {
-        if(!togglePressed) {
-          toggleOn = !toggleOn;
-          togglePressed = true;
-        }
-      } else {
-        togglePressed = false;
-      }
-    }
   }
 
+  /**
+   * This function is called periodically during test mode.
+   */
   @Override
   public void testPeriodic() {
   }
