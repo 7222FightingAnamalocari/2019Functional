@@ -48,7 +48,7 @@ public class Robot extends IterativeRobot {
     m_chooser.addDefault("Default Auto", kDefaultAuto);
     m_chooser.addObject("My Auto", kCustomAuto);
     SmartDashboard.putData("Auto choices", m_chooser);
-    new Thread(() -> {
+    new Thread (() -> {
       UsbCamera camera = CameraServer.getInstance().startAutomaticCapture(0);
       camera.setResolution(640, 480);
 
@@ -81,19 +81,17 @@ public class Robot extends IterativeRobot {
       }
     }).start();
   }
-
- /*
-  * This function is called every robot packet, no matter the mode. Use
-  * this for items like diagnostics that you want ran during disabled,
-  * autonomous, teleoperated and test.
-  *
-  * <p>This runs after the mode specific periodic functions, but before
-  * LiveWindow and SmartDashboard integrated updating.
-  */
   @Override
   public void robotPeriodic() {
+    //This function is called every robot packet, no matter the mode.
   }
-
+  @Override
+  public void autonomousInit() {
+    m_autoSelected = m_chooser.getSelected();
+    // autoSelected = SmartDashboard.getString("Auto Selector",
+    // defaultAuto);
+    System.out.println("Auto selected: " + m_autoSelected);
+  }
  /*
   * This autonomous (along with the chooser code above) shows how to select
   * between different autonomous modes using the dashboard. The sendable
@@ -106,14 +104,6 @@ public class Robot extends IterativeRobot {
   * SendableChooser make sure to add them to the chooser code above as well.
   */
   @Override
-  public void autonomousInit() {
-    m_autoSelected = m_chooser.getSelected();
-    // autoSelected = SmartDashboard.getString("Auto Selector",
-    // defaultAuto);
-    System.out.println("Auto selected: " + m_autoSelected);
-  }
-
-  @Override
   public void autonomousPeriodic() {
     switch (m_autoSelected) {
       case kCustomAuto:
@@ -125,42 +115,47 @@ public class Robot extends IterativeRobot {
         break;
     }
   }
-
   @Override
   public void teleopPeriodic() {
-    double stick0Y = stick0.getY();
-    double stick0X = stick0.getX();
-    
-    if((stick0Y >= .2) || (stick0Y <= -.2)) {
-      m_left.set(stick0Y/1.2);
-      m_right.set(stick0Y/1.2);
-    } else {
-      if((stick0X >= .3) || (stick0X <= -.3)) {
-        m_left.set(-stick0X/2);
-        m_right.set(stick0X/2);
+    new Thread(() -> {
+      double stick0Y = stick0.getY();
+      double stick0X = stick0.getX();
+      if((stick0Y >= .2) || (stick0Y <= -.2)) {
+        m_left.set(stick0Y/1.2);
+        m_right.set(stick0Y/1.2);
       } else {
-        m_left.set(0);
-        m_right.set(0);
-      }
-    }
-    compressor.setClosedLoopControl(true);
-    if(toggleOn) {
-      cannonFeed.set(DoubleSolenoid.Value.kForward);
-    } else {
-      cannonFeed.set(DoubleSolenoid.Value.kForward);
-    }
-    {
-      if(stick0.getRawButton(1)) {
-        if(!togglePressed) {
-          toggleOn = !toggleOn;
-          togglePressed = true;
+        if(((stick0X == 0) && (stick0Y ==0)) ) {
+          m_left.set(0);
+          m_right.set(0);
         }
-      } else {
-        togglePressed = false;
       }
-    }
+    }).start();
+    new Thread (() -> {
+      double stick0X = stick0.getX();
+      if((stick0X >= .3) || (stick0X <= -.3)) {
+        m_left.set(stick0X/1.2);
+        m_right.set(-stick0X/1.2);
+      }
+    }).start();
+    new Thread(() -> {
+      compressor.setClosedLoopControl(true);
+      if(toggleOn) {
+        cannonFeed.set(DoubleSolenoid.Value.kForward);
+      } else {
+        cannonFeed.set(DoubleSolenoid.Value.kForward);
+      }
+      {
+        if(stick0.getRawButton(1)) {
+          if(!togglePressed) {
+            toggleOn = !toggleOn;
+            togglePressed = true;
+          }
+        } else {
+          togglePressed = false;
+        }
+      }
+    }).start();
   }
-
   @Override
   public void testPeriodic() {
   }
