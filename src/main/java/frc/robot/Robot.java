@@ -122,9 +122,10 @@ public class Robot extends IterativeRobot {
       if((stick0X >= .3) || (stick0X <= -.3)) {
         m_left.set(-stick0X/2);
         m_right.set(stick0X/2);
+      } else {
+        m_left.set(0);
+        m_right.set(0);
       }
-      m_left.set(0);
-      m_right.set(0);
     }
     compressor.setClosedLoopControl(true);
     if(toggleOn) {
