@@ -49,7 +49,7 @@ public class Robot extends IterativeRobot {
     m_chooser.addObject("My Auto", kCustomAuto);
     SmartDashboard.putData("Auto choices", m_chooser);
     new Thread(() -> {
-      UsbCamera camera = CameraServer.getInstance().startAutomaticCapture();
+      UsbCamera camera = CameraServer.getInstance().startAutomaticCapture(0);
       camera.setResolution(640, 480);
 
       CvSink cvSink = CameraServer.getInstance().getVideo();
@@ -64,6 +64,22 @@ public class Robot extends IterativeRobot {
       }
     }).start();
     m_left.setInverted(true);
+    new Thread(() -> {
+      UsbCamera camera = CameraServer.getInstance().startAutomaticCapture(1);
+      camera.setResolution(1280, 720);
+
+      CvSink cvsink = CameraServer.getInstance().getVideo();
+      CvSource outputStream = CameraServer.getInstance().putVideo("cam1", 1280, 720);
+
+      Mat source = new Mat();
+      Mat output = new Mat();
+
+      while(!Thread.interrupted()) {
+        cvsink.grabFrame(source);
+        Imgproc.cvtColor(source, output, Imgproc.COLOR_BGR2GRAY);
+        outputStream.putFrame(output);
+      }
+    }).start();
   }
 
  /*
