@@ -124,7 +124,7 @@ public class Robot extends IterativeRobot {
         m_left.set(stick0Y/1.2);
         m_right.set(stick0Y/1.2);
       } else {
-        if(((stick0X == 0) && (stick0Y ==0)) ) {
+        if(((stick0X == 0) && (stick0Y == 0)) ) {
           m_left.set(0);
           m_right.set(0);
         }
