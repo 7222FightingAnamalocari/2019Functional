@@ -142,7 +142,7 @@ public class Robot extends IterativeRobot {
       if(toggleOn) {
         cannonFeed.set(DoubleSolenoid.Value.kForward);
       } else {
-        cannonFeed.set(DoubleSolenoid.Value.kForward);
+        cannonFeed.set(DoubleSolenoid.Value.kReverse);
       }
       {
         if(stick0.getRawButton(1)) {
