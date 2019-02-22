@@ -3,8 +3,11 @@ package frc.robot;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 
-import edu.wpi.first.wpilibj.IterativeRobot;
-import edu.wpi.first.wpilibj.CameraServer;
+//import edu.wpi.first.wpilibj.IterativeRobot;
+import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+//import edu.wpi.first.wpilibj.CameraServer;
+import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.cscore.CvSink;
@@ -16,32 +19,49 @@ import edu.wpi.first.wpilibj.SpeedControllerGroup;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
-public class Robot extends IterativeRobot {
+public class Robot extends TimedRobot {
   private static final String kDefaultAuto = "Default";
   private static final String kCustomAuto = "My Auto";
   private String m_autoSelected;
   private final SendableChooser<String> m_chooser = new SendableChooser<>();
 
   Joystick stick0 = new Joystick(0);
+  Joystick stick1 = new Joystick(1);
 
   Spark m_leftFront = new Spark(0);
   Spark m_leftBack = new Spark(1);
   Spark m_rightFront = new Spark(2);
   Spark m_rightBack = new Spark(3);
 
+  Spark elevator0 = new Spark(4);
+  Spark elevator1 = new Spark(5);
+
+  Spark intakeRight = new Spark(6);
+  Spark intakeLeft = new Spark(7);
+
+  Spark driveBottom = new Spark(8);
+
   SpeedControllerGroup m_left = new SpeedControllerGroup(m_leftFront, m_leftBack);
   SpeedControllerGroup m_right = new SpeedControllerGroup(m_rightFront, m_rightBack);
 
-  DoubleSolenoid cannonFeed = new DoubleSolenoid(1, 2);
+  DifferentialDrive r_drive = new DifferentialDrive(m_left, m_right);
+
+  DoubleSolenoid sol0 = new DoubleSolenoid(0, 1);
+  DoubleSolenoid sol1 = new DoubleSolenoid(2, 3);
+  DoubleSolenoid sol2 = new DoubleSolenoid(4,5);
+  DoubleSolenoid sol3 = new DoubleSolenoid(6,7);
   
   Compressor compressor = new Compressor(0);
 
   boolean toggleOn = false;
+  boolean frontToggle = false;
+  boolean backToggle = false;
+
   boolean togglePressed = false;
+  boolean frontPressed = false;
+  boolean backPressed = false;
 
   boolean enabled = compressor.enabled();
-  boolean pressureSwitch = compressor.getPressureSwitchValue();
-  double current = compressor.getCompressorCurrent();
 
   @Override
   public void robotInit() {
@@ -64,22 +84,7 @@ public class Robot extends IterativeRobot {
       }
     }).start();
     m_left.setInverted(true);
-    new Thread(() -> {
-      UsbCamera camera = CameraServer.getInstance().startAutomaticCapture(1);
-      camera.setResolution(1280, 720);
-
-      CvSink cvsink = CameraServer.getInstance().getVideo();
-      CvSource outputStream = CameraServer.getInstance().putVideo("cam1", 1280, 720);
-
-      Mat source = new Mat();
-      Mat output = new Mat();
-
-      while(!Thread.interrupted()) {
-        cvsink.grabFrame(source);
-        Imgproc.cvtColor(source, output, Imgproc.COLOR_BGR2GRAY);
-        outputStream.putFrame(output);
-      }
-    }).start();
+    intakeLeft.setInverted(true);
   }
   @Override
   public void robotPeriodic() {
@@ -117,6 +122,7 @@ public class Robot extends IterativeRobot {
   }
   @Override
   public void teleopPeriodic() {
+    /*
     new Thread(() -> {
       double stick0Y = stick0.getY();
       double stick0X = stick0.getX();
@@ -124,12 +130,13 @@ public class Robot extends IterativeRobot {
         m_left.set(stick0Y/1.2);
         m_right.set(stick0Y/1.2);
       } else {
-        if(((stick0X == 0) && (stick0Y == 0)) ) {
+        if(((stick0X == 0) && (stick0Y ==0)) ) {
           m_left.set(0);
           m_right.set(0);
         }
       }
     }).start();
+
     new Thread (() -> {
       double stick0X = stick0.getX();
       if((stick0X >= .3) || (stick0X <= -.3)) {
@@ -137,24 +144,126 @@ public class Robot extends IterativeRobot {
         m_right.set(-stick0X/1.2);
       }
     }).start();
+*/
+    compressor.setClosedLoopControl(true);
     new Thread(() -> {
-      compressor.setClosedLoopControl(true);
-      if(toggleOn) {
-        cannonFeed.set(DoubleSolenoid.Value.kForward);
-      } else {
-        cannonFeed.set(DoubleSolenoid.Value.kReverse);
-      }
+      r_drive.arcadeDrive(stick0.getY(), stick0.getX());
+    }).start();
+    new Thread (() -> { //bot lift codeEA
       {
-        if(stick0.getRawButton(1)) {
-          if(!togglePressed) {
-            toggleOn = !toggleOn;
-            togglePressed = true;
-          }
+      if(frontToggle) { //this is the front lift
+        sol0.set(DoubleSolenoid.Value.kForward);
+      } else {
+        sol0.set(DoubleSolenoid.Value.kReverse);
+      }
+    
+      if(stick0.getRawButton(11) == true) { //more front lift
+        if(frontPressed) {
+          frontToggle = !frontToggle;
+          frontPressed = true;
         } else {
-          togglePressed = false;
+        frontPressed = false;
+        }
+      }
+    }
+  }).start();
+  new Thread(() -> {
+    {
+      if(backToggle) { //back lift
+        sol1.set(DoubleSolenoid.Value.kForward);
+      } else {
+        sol1.set(DoubleSolenoid.Value.kReverse);
+      }
+
+      if(stick0.getRawButton(12) == true) { //more back lift
+        if(backPressed) {
+          backToggle = !backToggle;
+          backPressed = true;
+        }
+      } else {
+        backPressed = false;
+       }
+      }
+  }).start();
+
+  new Thread(() -> { //elevator code
+    if((stick1.getRawAxis(1) >= .2) || (stick1.getRawAxis(1) <= -.2)) { //first level elevator
+      elevator0.set(-stick1.getRawAxis(1));
+    } else {
+      elevator0.set(0);
+    }
+  }).start();
+  new Thread(() -> {
+    if((stick1.getRawAxis(3) >= .2) || (stick1.getRawAxis(3) <= -.2)) { //second elevator
+      elevator1.set(stick1.getRawAxis(3));
+    } else {
+      elevator1.set(0);
+    }
+  }).start();
+
+  new Thread(() -> { //dover intake code
+      if(stick1.getPOV() == 1) {
+        intakeLeft.set(1);
+        intakeRight.set(1);
+      } else {
+        if(stick1.getPOV() == 3) {
+          intakeLeft.set(-1);
+          intakeRight.set(-1);
+        } else {
+          intakeLeft.set(0);
+          intakeRight.set(0);
         }
       }
     }).start();
+
+    new Thread(() -> {
+      if(stick0.getPOV() == 1) {
+        driveBottom.set(.3);
+      } else {
+        if(stick0.getPOV() == 3) {
+          driveBottom.set(-.3);
+        } else {
+          driveBottom.set(0);
+        }
+      }
+    }).start();
+/*
+    new Thread(() -> {
+      {
+        if(toggleOn) {
+          sol2.set(DoubleSolenoid.Value.kForward);
+        } else {
+          sol2.set(DoubleSolenoid.Value.kReverse);
+        }
+        if(stick0.getRawButton(7) == true) { //more back lift
+          if(!this.togglePressed) {
+            this.toggleOn = !toggleOn;
+            this.togglePressed = true;
+          }
+        } else {
+          this.togglePressed = false;
+        }
+      }
+    }).start();
+
+    new Thread(() -> {
+      {
+        if(this.toggleOn) {
+          sol2.set(DoubleSolenoid.Value.kForward);
+        } else {
+          sol2.set(DoubleSolenoid.Value.kReverse);
+        }
+        if(stick0.getRawButton(8) == true) { //more back lift
+          if(!this.togglePressed) {
+            this.toggleOn = !toggleOn;
+            this.togglePressed = true;
+          }
+        } else {
+          this.togglePressed = false;
+        }
+      }
+    }).start();
+    */
   }
   @Override
   public void testPeriodic() {
