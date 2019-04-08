@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-
-*.lock
-=======
 # Created by https://www.gitignore.io/api/c++,java,linux,macos,gradle,windows,visualstudiocode
 
 ### C++ ###
@@ -162,4 +158,3 @@ bin/
 
 
 # End of https://www.gitignore.io/api/c++,java,linux,macos,gradle,windows,visualstudiocode
->>>>>>> f8453e2da4b8ecbf129c08cbe6e38a535ff82661

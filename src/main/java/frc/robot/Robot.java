@@ -3,10 +3,8 @@ package frc.robot;
 import org.opencv.core.Mat;
 import org.opencv.imgproc.Imgproc;
 
-//import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
-//import edu.wpi.first.wpilibj.CameraServer;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
@@ -34,7 +32,7 @@ public class Robot extends TimedRobot {
   Spark m_rightBack = new Spark(3);
 
   Spark elevator0 = new Spark(4);
-  Spark elevator1 = new Spark(5);
+  Spark winch = new Spark(5);
 
   Spark intakeRight = new Spark(6);
   Spark intakeLeft = new Spark(7);
@@ -48,18 +46,20 @@ public class Robot extends TimedRobot {
 
   DoubleSolenoid sol0 = new DoubleSolenoid(0, 1);
   DoubleSolenoid sol1 = new DoubleSolenoid(2, 3);
-  DoubleSolenoid sol2 = new DoubleSolenoid(4,5);
-  DoubleSolenoid sol3 = new DoubleSolenoid(6,7);
+  //DoubleSolenoid sol2 = new DoubleSolenoid(4,5);
+  DoubleSolenoid sol3 = new DoubleSolenoid(4,5);
   
   Compressor compressor = new Compressor(0);
 
-  boolean toggleOn = false;
-  boolean frontToggle = false;
-  boolean backToggle = false;
+  boolean toggleOn;
+  boolean frontToggle;
+  boolean backToggle;
+  boolean hatchToggle;
 
   boolean togglePressed = false;
   boolean frontPressed = false;
   boolean backPressed = false;
+  boolean hatchPressed = false;
 
   boolean enabled = compressor.enabled();
 
@@ -70,10 +70,10 @@ public class Robot extends TimedRobot {
     SmartDashboard.putData("Auto choices", m_chooser);
     new Thread (() -> {
       UsbCamera camera = CameraServer.getInstance().startAutomaticCapture(0);
-      camera.setResolution(640, 480);
+      camera.setResolution(320, 240);
 
       CvSink cvSink = CameraServer.getInstance().getVideo();
-      CvSource outputStream = CameraServer.getInstance().putVideo("cam0", 640, 480);
+      CvSource outputStream = CameraServer.getInstance().putVideo("cam0", 320, 240);
 
       Mat source = new Mat();
       Mat output = new Mat();
@@ -88,6 +88,9 @@ public class Robot extends TimedRobot {
   }
   @Override
   public void robotPeriodic() {
+    SmartDashboard.putBoolean("Hatch Grabber", hatchToggle);
+    SmartDashboard.putNumber("Compressor Power", compressor.getCompressorCurrent());
+    SmartDashboard.putBoolean("Pressure Low?", compressor.getPressureSwitchValue());
     //This function is called every robot packet, no matter the mode.
   }
   @Override
@@ -117,73 +120,53 @@ public class Robot extends TimedRobot {
       case kDefaultAuto:
       default:
         // Put default auto code here
-        break;
-    }
-  }
-  @Override
-  public void teleopPeriodic() {
-    /*
-    new Thread(() -> {
-      double stick0Y = stick0.getY();
-      double stick0X = stick0.getX();
-      if((stick0Y >= .2) || (stick0Y <= -.2)) {
-        m_left.set(stick0Y/1.2);
-        m_right.set(stick0Y/1.2);
-      } else {
-        if(((stick0X == 0) && (stick0Y ==0)) ) {
-          m_left.set(0);
-          m_right.set(0);
-        }
-      }
-    }).start();
 
-    new Thread (() -> {
-      double stick0X = stick0.getX();
-      if((stick0X >= .3) || (stick0X <= -.3)) {
-        m_left.set(stick0X/1.2);
-        m_right.set(-stick0X/1.2);
-      }
-    }).start();
-*/
-    compressor.setClosedLoopControl(true);
-    new Thread(() -> {
-      r_drive.arcadeDrive(stick0.getY(), stick0.getX());
-    }).start();
-    new Thread (() -> { //bot lift codeEA
-      {
-      if(frontToggle) { //this is the front lift
-        sol0.set(DoubleSolenoid.Value.kForward);
+  r_drive.arcadeDrive(-stick0.getX(), stick0.getY());
+
+  new Thread (() -> {
+    if(frontToggle) { //this is the front lift
+      sol0.set(DoubleSolenoid.Value.kForward);
+    } else {
+      sol0.set(DoubleSolenoid.Value.kReverse);
+  }
+    if(stick0.getRawButtonPressed(7)) { //more front lift
+      if(!frontPressed) {
+        frontToggle = !frontToggle;
+        frontPressed = true;
       } else {
-        sol0.set(DoubleSolenoid.Value.kReverse);
-      }
-    
-      if(stick0.getRawButton(11) == true) { //more front lift
-        if(frontPressed) {
-          frontToggle = !frontToggle;
-          frontPressed = true;
-        } else {
         frontPressed = false;
-        }
       }
     }
   }).start();
   new Thread(() -> {
-    {
-      if(backToggle) { //back lift
-        sol1.set(DoubleSolenoid.Value.kForward);
-      } else {
-        sol1.set(DoubleSolenoid.Value.kReverse);
+    if(backToggle) { //back lift
+      sol1.set(DoubleSolenoid.Value.kForward);
+    } else {
+      sol1.set(DoubleSolenoid.Value.kReverse);
+    }
+    if(stick0.getRawButtonPressed(8)) { //more back lift
+      if(!backPressed) {
+        backToggle = !backToggle;
+        backPressed = true;
       }
-
-      if(stick0.getRawButton(12) == true) { //more back lift
-        if(backPressed) {
-          backToggle = !backToggle;
-          backPressed = true;
-        }
+    } else {
+      backPressed = false;
+    }
+  }).start();
+  new Thread(() -> {
+    if(hatchToggle) { //this is the hatch grabber code
+      sol3.set(DoubleSolenoid.Value.kForward);
+    } else {
+      sol3.set(DoubleSolenoid.Value.kReverse);
+    }    
+    if(stick1.getRawButtonPressed(1)) {
+      if(!hatchPressed) {
+        hatchToggle = !hatchToggle;
+        hatchPressed = true;
       } else {
-        backPressed = false;
-       }
+        hatchPressed = false;
       }
+    }
   }).start();
 
   new Thread(() -> { //elevator code
@@ -193,78 +176,149 @@ public class Robot extends TimedRobot {
       elevator0.set(0);
     }
   }).start();
+
   new Thread(() -> {
-    if((stick1.getRawAxis(3) >= .2) || (stick1.getRawAxis(3) <= -.2)) { //second elevator
-      elevator1.set(stick1.getRawAxis(3));
+    if(stick1.getRawButton(7)) { //dover intake
+      intakeLeft.set(.5);
+      intakeRight.set(.5);
     } else {
-      elevator1.set(0);
+      if(stick1.getRawButton(8)) {
+        intakeLeft.set(-1);
+        intakeRight.set(-1);
+      } else {
+        intakeLeft.set(0);
+        intakeRight.set(0);
+      }
     }
   }).start();
 
-  new Thread(() -> { //dover intake code
-      if(stick1.getPOV() == 1) {
-        intakeLeft.set(1);
-        intakeRight.set(1);
+  new Thread(() -> { //winch code
+    if(stick1.getRawAxis(3) <= -.3) {
+      winch.set(.7);
+    } else {
+      if(stick1.getRawAxis(3) >= .3) {
+        winch.set(-.5);
       } else {
-        if(stick1.getPOV() == 3) {
-          intakeLeft.set(-1);
-          intakeRight.set(-1);
-        } else {
-          intakeLeft.set(0);
-          intakeRight.set(0);
-        }
+        winch.set(0);
       }
-    }).start();
+    }
+  }).start();
 
-    new Thread(() -> {
-      if(stick0.getPOV() == 1) {
-        driveBottom.set(.3);
+  new Thread(() -> { //Drive  bottom drive code
+    if(stick0.getRawButton(9) == true) {
+      driveBottom.set(.8);
+    } else {
+      if(stick0.getRawButton(10) == true) {
+        driveBottom.set(-.8);
       } else {
-        if(stick0.getPOV() == 3) {
-          driveBottom.set(-.3);
-        } else {
-          driveBottom.set(0);
-        }
+        driveBottom.set(0);
       }
-    }).start();
-/*
-    new Thread(() -> {
-      {
-        if(toggleOn) {
-          sol2.set(DoubleSolenoid.Value.kForward);
-        } else {
-          sol2.set(DoubleSolenoid.Value.kReverse);
-        }
-        if(stick0.getRawButton(7) == true) { //more back lift
-          if(!this.togglePressed) {
-            this.toggleOn = !toggleOn;
-            this.togglePressed = true;
-          }
-        } else {
-          this.togglePressed = false;
-        }
-      }
-    }).start();
-
-    new Thread(() -> {
-      {
-        if(this.toggleOn) {
-          sol2.set(DoubleSolenoid.Value.kForward);
-        } else {
-          sol2.set(DoubleSolenoid.Value.kReverse);
-        }
-        if(stick0.getRawButton(8) == true) { //more back lift
-          if(!this.togglePressed) {
-            this.toggleOn = !toggleOn;
-            this.togglePressed = true;
-          }
-        } else {
-          this.togglePressed = false;
-        }
-      }
-    }).start();
-    */
+    }
+  }).start();
+        break;
+    }
   }
+  @Override
+  public void teleopPeriodic() {
+
+  compressor.setClosedLoopControl(true);
+  compressor.getPressureSwitchValue();
+
+  r_drive.arcadeDrive(-stick0.getX(), stick0.getY());
+
+  new Thread (() -> {
+    if(frontToggle) { //this is the front lift
+      sol0.set(DoubleSolenoid.Value.kForward);
+    } else {
+      sol0.set(DoubleSolenoid.Value.kReverse);
+  }
+    if(stick0.getRawButtonPressed(7)) { //more front lift
+      if(!frontPressed) {
+        frontToggle = !frontToggle;
+        frontPressed = true;
+      } else {
+        frontPressed = false;
+      }
+    }
+  }).start();
+  new Thread(() -> {
+    if(backToggle) { //back lift
+      sol1.set(DoubleSolenoid.Value.kForward);
+    } else {
+      sol1.set(DoubleSolenoid.Value.kReverse);
+    }
+    if(stick0.getRawButtonPressed(8)) { //more back lift
+      if(!backPressed) {
+        backToggle = !backToggle;
+        backPressed = true;
+      }
+    } else {
+      backPressed = false;
+    }
+  }).start();
+  new Thread(() -> {
+    if(hatchToggle) { //this is the hatch grabber code
+      sol3.set(DoubleSolenoid.Value.kForward);
+    } else {
+      sol3.set(DoubleSolenoid.Value.kReverse);
+    }    
+    if(stick1.getRawButtonPressed(1)) {
+      if(!hatchPressed) {
+        hatchToggle = !hatchToggle;
+        hatchPressed = true;
+      } else {
+        hatchPressed = false;
+      }
+    }
+  }).start();
+
+  new Thread(() -> { //elevator code
+    if((stick1.getRawAxis(1) >= .2) || (stick1.getRawAxis(1) <= -.2)) { //first level elevator
+      elevator0.set(-stick1.getRawAxis(1));
+    } else {
+      elevator0.set(0);
+    }
+  }).start();
+
+  new Thread(() -> {
+    if(stick1.getRawButton(7)) { //dover intake
+      intakeLeft.set(.5);
+      intakeRight.set(.5);
+    } else {
+      if(stick1.getRawButton(8)) {
+        intakeLeft.set(-1);
+        intakeRight.set(-1);
+      } else {
+        intakeLeft.set(0);
+        intakeRight.set(0);
+      }
+    }
+  }).start();
+
+  new Thread(() -> { //winch code
+    if(stick1.getRawAxis(3) <= -.3) {
+      winch.set(.7);
+    } else {
+      if(stick1.getRawAxis(3) >= .3) {
+        winch.set(-.5);
+      } else {
+        winch.set(0);
+      }
+    }
+  }).start();
+
+  new Thread(() -> { //Drive  bottom drive code
+    if(stick0.getRawButton(9) == true) {
+      driveBottom.set(.8);
+    } else {
+      if(stick0.getRawButton(10) == true) {
+        driveBottom.set(-.6);
+      } else {
+        driveBottom.set(0);
+      }
+    }
+  }).start();
+}
   @Override
   public void testPeriodic() {
   }
